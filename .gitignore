@@ -3,3 +3,4 @@
 outputs*
 .vscode
 .ipynb_checkpoints
+*.swp

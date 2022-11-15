@@ -1,13 +1,13 @@
-exp_name: default
-output_dir: path_to_output_dir # e.g. $HOME/Data/gpv_output_dir
+exp_name: frozen
+output_dir: /workspace/data/gpv
 exp_dir: ${output_dir}/${exp_name}
 tb_dir: ${exp_dir}/tb_logs
 ckpt_dir: ${exp_dir}/ckpts
-data_dir: path_to_data_dir # e.g $HOME/Data/gpv_data_dir
+data_dir: /workspace/data/gpv/data/
 
 gpu: 0
 num_nodes: 1
-ngpus_per_node: 4
+ngpus_per_node: 1
 world_size: null  #computed dynamically as num_nodes*ngpus_per_node
 rank: 0
 workers: ${training.num_workers}
@@ -117,10 +117,11 @@ losses:
     num_classes: ${model.detr.num_classes}
 
 training:
-  ckpt: null # ${ckpt_dir}/model.pth
-  freeze: False # freeze Detr layers
-  frozen_epochs: 10
-  frozen_batch_size: 120
+  # ckpt: null # ${ckpt_dir}/model.pth
+  ckpt: ${ckpt_dir}/model.pth
+  freeze: True # freeze Detr layers
+  frozen_epochs: 20
+  frozen_batch_size: 60
   num_epochs: 40 # will be set to frozen_epochs if freeze is True
   batch_size: 120 # will be set to frozen_batch_size if freeze is True
   num_workers: 30

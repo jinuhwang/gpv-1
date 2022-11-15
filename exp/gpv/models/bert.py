@@ -5,8 +5,8 @@ from transformers import BertTokenizer, BertModel
 class Bert(nn.Module):
     def __init__(self,cfg=None):
         super().__init__()
-        self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased') 
-        self.model = BertModel.from_pretrained('bert-base-uncased')
+        self.tokenizer = BertTokenizer.from_pretrained('/workspace/third_parties/bert-base-uncased') 
+        self.model = BertModel.from_pretrained('/workspace/third_parties/bert-base-uncased')
 
     def forward(self,sentences,device=None):
         token_inputs = self.tokenizer(
