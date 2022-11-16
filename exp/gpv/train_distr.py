@@ -33,9 +33,9 @@ def grad_norm(params):
     for p in params:
         param_norm = p.grad.data.norm(2)
         total_norm += param_norm.item() ** 2
-    
+
     return total_norm ** (1. / 2)
-    
+
 
 def visualize(model,dataloader,cfg,step,subset):
     device = f'cuda:{cfg.gpu}'
@@ -65,7 +65,7 @@ def visualize(model,dataloader,cfg,step,subset):
             for k,v in t.items():
                 if not isinstance(v,str):
                     t[k] = v.cuda(device)
-        
+
         answer_tokens,answer_token_ids = model.encode_answers(targets)
         for i,t in enumerate(targets):
             t['answer_token_ids'] = answer_token_ids[i,1:]
@@ -102,10 +102,10 @@ def visualize(model,dataloader,cfg,step,subset):
                 num_gt_boxes = 0
             else:
                 num_gt_boxes = gt_boxes[b].shape[0]
-            vis_img = imgs[b]            
+            vis_img = imgs[b]
             for k in range(num_gt_boxes,max(num_gt_boxes,5)):
                 vis_bbox(boxes[k],vis_img,color=(0,0,255),modify=True,alpha=0)
-            
+
             for k in range(min(num_gt_boxes,5)):
                 vis_bbox(boxes[k],vis_img,color=(255,0,0),modify=True,alpha=0)
 
@@ -124,27 +124,28 @@ def visualize(model,dataloader,cfg,step,subset):
                 2: pred_answers[b],
                 3: answer_tokens[b],
                 4: np.round(topk_values[b],4)})
-        
+
         if finish_vis is True:
             break
-        
+
         count += B
-    
+
     html_writer.close()
 
 
 def freeze_detr_params(model,requires_grad=False):
     print(f'Setting requires grad to False for DETR params')
-    for n,p in model.named_parameters():
+    for n, p in model.named_parameters():
         if n in model.init_detr_params:
-            p.requires_grad = requires_grad
+            if 'backbone' in n:
+                p.requires_grad = requires_grad
 
 
 def get_lrs(optimizer):
     lrs = []
     for param_group in optimizer.param_groups:
         lrs.append(param_group['lr'])
-    
+
     return lrs
 
 def train_worker(gpu,cfg):
@@ -171,9 +172,9 @@ def train_worker(gpu,cfg):
         cfg.rank = cfg.rank * cfg.ngpus_per_node + cfg.gpu
 
         torch.cuda.set_device(cfg.gpu)
-        
+
         dist.init_process_group(
-            backend=cfg.dist_backend, 
+            backend=cfg.dist_backend,
             init_method=cfg.dist_url,
             world_size=cfg.world_size,
             rank=cfg.rank)
@@ -241,9 +242,9 @@ def train_worker(gpu,cfg):
         else:
             params['others'].append(p)
 
-    for k,v in params.items(): 
+    for k,v in params.items():
         print(k,len(v))
-    
+
     optimizer = torch.optim.AdamW([
         {'params': params['detr_backbone'], 'lr': cfg.training.lr_backbone},
         {'params': params['detr_head']},
@@ -278,7 +279,7 @@ def train_worker(gpu,cfg):
             model_selection_metric = ckpt['model_selection_metric']
         else:
             model_selection_metric = 0
-            
+
         # since a checkpoint is saved only if it is has the best metric so far
         best_metric = model_selection_metric
         best_epoch = last_epoch
@@ -289,7 +290,7 @@ def train_worker(gpu,cfg):
         cfg.training.lr_milestones,
         cfg.training.lr_drop,
         last_epoch=last_epoch)
-    
+
     warmup_iters = len(dataloaders['train'])
     if cfg.training.lr_warmup is True:
         if cfg.training.lr_linear_decay:
@@ -317,7 +318,7 @@ def train_worker(gpu,cfg):
         optimizer.zero_grad()
         optimizer.step()
 
-    
+
     training_epochs = cfg.training.num_epochs
     if cfg.training.freeze is True:
         training_epochs = cfg.training.frozen_epochs
@@ -339,7 +340,7 @@ def train_worker(gpu,cfg):
                         num_workers=cfg.workers,
                         shuffle=False,
                         collate_fn=detr_collate_fn)
-                    
+
                     if dataset_name=='coco_vqa':
                         with torch.no_grad():
                             vqa_acc = vqa_accuracy(model,eval_dataloader,cfg)
@@ -353,7 +354,7 @@ def train_worker(gpu,cfg):
 
                         print(f'Dataset: {dataset_name} | Subset: {eval_subset} | Epoch: {epoch} | Acc: {cls_acc}')
                         writer.add_scalar(f'cls_acc/{eval_subset}',cls_acc,step)
-                    
+
                     elif dataset_name=='coco_cap':
                         with torch.no_grad():
                             metrics = cap_metrics(model,eval_dataloader,cfg)
@@ -365,17 +366,17 @@ def train_worker(gpu,cfg):
                         writer.add_scalar(f'cap_metrics/{eval_subset}/cider',cider,step)
                         writer.add_scalar(f'cap_metrics/{eval_subset}/bleu1',bleu1,step)
                         writer.add_scalar(f'cap_metrics/{eval_subset}/bleu4',bleu4,step)
-                    
+
                     elif dataset_name=='coco_det':
                         with torch.no_grad():
                             det_map = det_metrics(model,eval_dataloader,cfg)
 
                         print(f'Dataset: {dataset_name} | Subset: {eval_subset} | Epoch: {epoch} | mAP: {det_map}')
                         writer.add_scalar(f'det_map/{eval_subset}',det_map,step)
-                    
+
                     else:
                         print(f'Eval not implemented for {dataset_name}')
-                
+
                 if eval_subset=='val':
                     model_selection_metric = vqa_acc+cider+det_map+cls_acc
 
@@ -403,14 +404,14 @@ def train_worker(gpu,cfg):
                 for k,v in t.items():
                     if not isinstance(v,str):
                         t[k] = v.cuda(device)
-            
+
             model.train()
             gpv_criterion.train()
 
             answer_tokens,answer_token_ids = model.encode_answers(targets)
             for i,t in enumerate(targets):
                 t['answer_token_ids'] = answer_token_ids[i,1:]
-            
+
             outputs = model(imgs,queries,answer_token_ids,targets)
             total_loss = outputs
             losses = {
@@ -422,11 +423,11 @@ def train_worker(gpu,cfg):
                 total_loss.backward()
                 if cfg.training.clip_max_norm > 0:
                     torch.nn.utils.clip_grad_norm_(
-                        params['detr_backbone']+params['detr_head'], 
+                        params['detr_backbone']+params['detr_head'],
                         cfg.training.clip_max_norm)
 
                 optimizer.step()
-            
+
             if gpu==0 and step%cfg.training.log_step==0:
                 loss_str = f'Epoch: {epoch} | Iter: {it} | Step: {step} | '
                 if cfg.training.lr_linear_decay:
@@ -442,7 +443,7 @@ def train_worker(gpu,cfg):
                         f'Lr/optimizer/group_{j}',
                         group_lr,
                         step)
-                
+
                 for loss_name,loss_value in losses.items():
                     if loss_value is None:
                         continue
@@ -461,7 +462,7 @@ def train_worker(gpu,cfg):
 
             if gpu==0 and step%(10*cfg.training.log_step)==0:
                 print('Exp:',cfg.exp_name)
-                
+
             step += 1
             launch=False
 
@@ -473,14 +474,14 @@ def train_worker(gpu,cfg):
         if not cfg.training.lr_linear_decay:
             lr_scheduler.step()
 
-        
+
 
 @hydra.main(config_path=f'../../configs',config_name=f"exp/gpv")
 def main(cfg):
     io.mkdir_if_not_exists(cfg.ckpt_dir,recursive=True)
     io.mkdir_if_not_exists(cfg.tb_dir,recursive=True)
     nltk.download('punkt')
-    
+
     if cfg.training.freeze:
         cfg.training.batch_size = cfg.training.frozen_batch_size
         cfg.batch_size = cfg.training.frozen_batch_size
@@ -493,7 +494,7 @@ def main(cfg):
         mp.spawn(train_worker, nprocs=cfg.ngpus_per_node, args=(cfg,))
     else:
         train_worker(cfg.gpu,cfg)
-    
+
 
 if __name__=='__main__':
     main()
