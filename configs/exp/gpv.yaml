@@ -25,7 +25,7 @@ defaults:
   - learning_datasets: vqa
 
 model:
-  pretr_detr: ${data_dir}/detr/detr_coco_sce.pth 
+  pretr_detr: ${data_dir}/detr/detr_coco.pth
   vocab: ${data_dir}/learning_phase_data/vocab/vocab.json
   vocab_embed: ${data_dir}/learning_phase_data/vocab/vocab_embed.npy
   max_pos_enc_len: 30
@@ -90,13 +90,13 @@ losses:
     pad_idx: null
     loss_wts:
       loss_caption: 5e-2
-  
+
   VqaLoss:
     name: vqa_criterion
     pad_idx: null
     loss_wts:
       loss_vqa: 1
-  
+
   ClsLoss:
     name: cls_criterion
     pad_idx: null
@@ -117,13 +117,13 @@ losses:
     num_classes: ${model.detr.num_classes}
 
 training:
-  # ckpt: null # ${ckpt_dir}/model.pth
+  # ckpt: null
   ckpt: ${ckpt_dir}/model.pth
   freeze: True # freeze Detr layers
-  frozen_epochs: 20
-  frozen_batch_size: 60
-  num_epochs: 40 # will be set to frozen_epochs if freeze is True
-  batch_size: 120 # will be set to frozen_batch_size if freeze is True
+  frozen_epochs: 80
+  frozen_batch_size: 50
+  num_epochs: 80 # will be set to frozen_epochs if freeze is True
+  batch_size: 50 # will be set to frozen_batch_size if freeze is True
   num_workers: 30
   vis_step: 2000
   log_step: 10
@@ -139,14 +139,14 @@ training:
     - 30
     - 35
   lr_drop: 0.5
-  lr_warmup: True
-  lr_linear_decay: True
+  lr_warmup: False
+  lr_linear_decay: False
   lr_warmup_fraction: 0.1
   clip_max_norm: 0.1
   run_vis_at_launch: True
   num_vis_samples: 15
   run_eval_at_launch: True
-  num_val_samples: 
+  num_val_samples:
     coco_vqa: 20000
     coco_cap: 10000
     coco_det: 10000

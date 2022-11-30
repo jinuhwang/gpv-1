@@ -21,14 +21,14 @@ python -m exp.gpv.train_distr \
     training.freeze=True
 
 # Path to the checkpoint saved from the previous step
-CKPT="${OUTPUT_DIR}/${EXP_NAME}/ckpts/model.pth"
-
-# Finetune entire model including DETR weights
-python -m exp.gpv.train_distr \
-    exp_name=$EXP_NAME \
-    output_dir=$OUTPUT_DIR \
-    data_dir=$DATA_DIR \
-    learning_datasets=$LEARNING_DATASETS \
-    task_configs.data_split=$DATA_SPLIT \
-    training.ckpt=$CKPT \
-    training.freeze=False
+# CKPT="${OUTPUT_DIR}/${EXP_NAME}/ckpts/model.pth"
+# 
+# # Finetune entire model including DETR weights
+# python -m exp.gpv.train_distr \
+#     exp_name=$EXP_NAME \
+#     output_dir=$OUTPUT_DIR \
+#     data_dir=$DATA_DIR \
+#     learning_datasets=$LEARNING_DATASETS \
+#     task_configs.data_split=$DATA_SPLIT \
+#     training.ckpt=$CKPT \
+#     training.freeze=False

@@ -271,7 +271,7 @@ def train_worker(gpu,cfg):
                 print(k)
 
         model.load_state_dict(state_dict)
-        optimizer.load_state_dict(ckpt['optimizer'])
+        # optimizer.load_state_dict(ckpt['optimizer'])
 
         step = ckpt['step']
         last_epoch = ckpt['epoch']
@@ -289,7 +289,8 @@ def train_worker(gpu,cfg):
         optimizer,
         cfg.training.lr_milestones,
         cfg.training.lr_drop,
-        last_epoch=last_epoch)
+        last_epoch=-1)
+        # last_epoch=last_epoch)
 
     warmup_iters = len(dataloaders['train'])
     if cfg.training.lr_warmup is True:
