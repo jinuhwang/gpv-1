@@ -1,0 +1,114 @@
+From f8238d7917479b058e750156c362f858f3ec110e Mon Sep 17 00:00:00 2001
+From: Wanchao Liang <wanchaol@fb.com>
+Date: Wed, 3 Mar 2021 11:53:26 -0800
+Subject: [PATCH] [optim] bugfix when all parameters have no grad (#52944)
+
+Summary:
+Pull Request resolved: https://github.com/pytorch/pytorch/pull/52944
+
+This fix the bug introduced during refactoring optimizers https://github.com/pytorch/pytorch/pull/50411. When all parameters have no grads, we should still allows `beta` like hyper params to be defined.
+
+Reviewed By: ngimel
+
+Differential Revision: D26699827
+
+fbshipit-source-id: 8a7074127704c7a4a1fbc17d48a81e23a649f280
+---
+ test/test_optim.py      | 20 ++++++++++++++++++++
+ torch/optim/adadelta.py |  3 +--
+ torch/optim/adam.py     |  2 +-
+ torch/optim/adamw.py    |  2 +-
+ 4 files changed, 23 insertions(+), 4 deletions(-)
+
+@@ diff --git a/test/test_optim.py b/test/test_optim.py
+@@ index 0155ac932c662..ec3ee6e7dadbe 100644
+@@ --- a/test/test_optim.py
+@@ +++ b/test/test_optim.py
+@@ @@ -633,6 +633,26 @@ def test_duplicate_params_in_param_group(self):
+@@              self.assertEqual(len(w), 1)
+@@              self.assertIn('a parameter group with duplicate parameters', str(w[0].message))
+@@  
+@@ +    def test_no_grad_for_all_params(self):
+@@ +        param = torch.randn(5, 5, requires_grad=False)
+@@ +
+@@ +        optimizer_list = [
+@@ +            optim.Adadelta,
+@@ +            optim.AdamW,
+@@ +            optim.Adam,
+@@ +            optim.Adagrad,
+@@ +            optim.Adamax,
+@@ +            optim.RMSprop,
+@@ +            optim.SGD,
+@@ +            optim.SparseAdam,
+@@ +            optim.ASGD,
+@@ +        ]
+@@ +        for optim_ctr in optimizer_list:
+@@ +            opt = optim_ctr([param, param], lr=0.1)
+@@ +            # make sure step can still run even if
+@@ +            # all params have no grad
+@@ +            opt.step()
+@@ +
+@@  
+@@  class SchedulerTestNet(torch.nn.Module):
+@@      def __init__(self):
+diff --git a/torch/optim/adadelta.py b/torch/optim/adadelta.py
+index c47092d32da6d..598349c816327 100644
+--- a/torch/optim/adadelta.py
++++ b/torch/optim/adadelta.py
+@@ -54,6 +54,7 @@ def step(self, closure=None):
+             grads = []
+             square_avgs = []
+             acc_deltas = []
++            lr, rho, eps, weight_decay = group['lr'], group['rho'], group['eps'], group['weight_decay']
+ 
+             for p in group['params']:
+                 if p.grad is None:
+@@ -74,8 +75,6 @@ def step(self, closure=None):
+                 square_avgs.append(state['square_avg'])
+                 acc_deltas.append(state['acc_delta'])
+ 
+-                lr, rho, eps, weight_decay = group['lr'], group['rho'], group['eps'], group['weight_decay']
+-
+                 state['step'] += 1
+ 
+             F.adadelta(params_with_grad,
+diff --git a/torch/optim/adam.py b/torch/optim/adam.py
+index 87b63307f1915..7dfc3e067217c 100644
+--- a/torch/optim/adam.py
++++ b/torch/optim/adam.py
+@@ -73,6 +73,7 @@ def step(self, closure=None):
+             state_sums = []
+             max_exp_avg_sqs = []
+             state_steps = []
++            beta1, beta2 = group['betas']
+ 
+             for p in group['params']:
+                 if p.grad is not None:
+@@ -104,7 +105,6 @@ def step(self, closure=None):
+                     # record the step after step update
+                     state_steps.append(state['step'])
+ 
+-            beta1, beta2 = group['betas']
+             F.adam(params_with_grad,
+                    grads,
+                    exp_avgs,
+diff --git a/torch/optim/adamw.py b/torch/optim/adamw.py
+index 7e2b35f8c5cb5..023a75cb6d71c 100644
+--- a/torch/optim/adamw.py
++++ b/torch/optim/adamw.py
+@@ -73,6 +73,7 @@ def step(self, closure=None):
+             max_exp_avg_sqs = []
+             state_steps = []
+             amsgrad = group['amsgrad']
++            beta1, beta2 = group['betas']
+ 
+             for p in group['params']:
+                 if p.grad is None:
+@@ -101,7 +102,6 @@ def step(self, closure=None):
+                 if amsgrad:
+                     max_exp_avg_sqs.append(state['max_exp_avg_sq'])
+ 
+-                beta1, beta2 = group['betas']
+                 # update the steps for each param group update
+                 state['step'] += 1
+                 # record the step after step update
