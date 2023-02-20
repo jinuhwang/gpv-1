@@ -35,7 +35,7 @@ def make_predictions(model,dataloader,samples,cfg):
 
     eval_dir = os.path.join(cfg.exp_dir,'eval')
     boxes_h5py = h5py.File(os.path.join(
-        eval_dir,f'{cfg.eval.task}_{cfg.eval.subset}_boxes.h5py'),'w')
+        eval_dir,f'{cfg.eval.task}_{cfg.task_configs.data_split}_{cfg.eval.subset}_boxes.h5py'),'w')
     task_id_name = evaluators.task_to_id[cfg.eval.task]
     predictions = {}
     cnt = 0
@@ -93,21 +93,21 @@ def create_coco_vocab_mask(model,use_syns=False):
         syns = [coco_cls]
         if use_syns is True:
             syns = SYNONYMS[coco_cls]
-        
+
         for syn in syns:
             for token in word_tokenize(syn):
                 if token in model.word_to_idx:
                     idx = model.word_to_idx[token]
                     mask[idx] = 0
                     tokens.append(token)
-    
+
     for token in ['__stop__','__pad__']:
         idx = model.word_to_idx[token]
         mask[idx] = 0
         tokens.append(token)
 
     return tokens, mask
-    
+
 
 def update_samples_with_image_size(image_dir,samples):
     for sample in tqdm(samples):
@@ -120,7 +120,7 @@ def update_samples_with_image_size(image_dir,samples):
         W,H = imagesize.get(image_filename)
         sample['image']['W'] = W
         sample['image']['H'] = H
-    
+
     return samples
 
 
@@ -151,7 +151,7 @@ def main(cfg):
         for k,v in state_dict.items():
             state_dict[k] = loaded_dict[f'module.{k}']
             state_dict[k].requires_grad = False
-            
+
         model.load_state_dict(state_dict)
 
         with torch.no_grad():
@@ -167,7 +167,7 @@ def main(cfg):
         samples = update_samples_with_image_size(
             cfg.task_configs.image_dir,
             samples)
-    
+
     Evaluator = getattr(evaluators,cfg.eval.task)
     evaluator = Evaluator(samples,predictions,boxes_h5py)
     metrics = {}
@@ -177,7 +177,7 @@ def main(cfg):
         novelty_types = ['everything','seen_concepts','held_out_concepts']
         if cfg.task_configs.data_split=='original_split':
             novelty_types = ['everything']
-        
+
         for novelty in novelty_types:
             metrics[novelty] = evaluator.evaluate(novelty)
 

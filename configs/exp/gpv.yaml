@@ -5,9 +5,9 @@ tb_dir: ${exp_dir}/tb_logs
 ckpt_dir: ${exp_dir}/ckpts
 data_dir: /workspace/data/gpv/data/
 
-gpu: 0
+gpu: 3
 num_nodes: 1
-ngpus_per_node: 1
+ngpus_per_node: 3
 world_size: null  #computed dynamically as num_nodes*ngpus_per_node
 rank: 0
 workers: ${training.num_workers}

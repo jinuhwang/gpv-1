@@ -17,7 +17,7 @@ from .coco_generic_dataset import GenericCocoDataset
 class CocoCaptioning(GenericCocoDataset):
     def __init__(self,cfg,subset):
         super().__init__(cfg,subset)
-    
+
     def __getitem__(self,i):
         outputs = super().__getitem__(i)
         outputs[-1]['task'] = 'CocoCaptioning'
@@ -56,7 +56,7 @@ class CocoVqa(GenericCocoDataset):
                 image_subset,image_id)
             img = (255*img).astype(np.uint8)
             img = self.transforms(img)
-        
+
         query = sample['query']
         all_answers = []
         for answer,freq in sample['all_answers'].items():
@@ -66,7 +66,7 @@ class CocoVqa(GenericCocoDataset):
         selected_answer = sample['answer']
         if len(all_answers) > 0:
             selected_answer = random.choice(all_answers)
-        
+
         targets = {'answer': selected_answer, 'task': 'CocoVqa'}
 
         if self.cfg.read_image is True:
@@ -95,7 +95,7 @@ class CocoVqaTestOriginalSplitDataset(CocoVqa):
                 image_subset,image_id)
             img = (255*img).astype(np.uint8)
             img = self.transforms(img)
-        
+
         query = sample['query']
         return img, query
 
@@ -109,7 +109,7 @@ class CocoCapTestOriginalSplitDataset(CocoCaptioning):
         super().__init__(cfg,subset)
         if subset=='val':
             self.samples = self.deduplicate_samples(self.samples)
-    
+
     def deduplicate_samples(self,samples):
         deduped_samples = {}
         for sample in self.samples:
@@ -129,10 +129,10 @@ class CocoCapTestOriginalSplitDataset(CocoCaptioning):
                 image_subset,image_id)
             img = (255*img).astype(np.uint8)
             img = self.transforms(img)
-        
+
         query = sample['query']
         return img, query
-        
+
 
 class CocoClassification(GenericCocoDataset):
     def __init__(self,cfg,subset):
@@ -148,7 +148,7 @@ class CocoClassification(GenericCocoDataset):
                 T.ToTensor(),
                 T.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
             ])
-    
+
     def read_image(self,image_subset,image_id,x,y,w,h):
         img_dir = os.path.join(self.cfg.image_dir,image_subset)
         img_path = os.path.join(
@@ -173,7 +173,7 @@ class CocoClassification(GenericCocoDataset):
         original_image_size = img.shape[:2] # HxW
         resized_image_size = resize(img,(self.imh,self.imw),anti_aliasing=True)
         return resized_image_size, original_image_size
-    
+
     def __getitem__(self,i):
         sample = self.samples[i]
 
@@ -185,7 +185,7 @@ class CocoClassification(GenericCocoDataset):
                 image_subset,image_id,x,y,w,h)
             img = (255*img).astype(np.uint8)
             img = self.transforms(img)
-        
+
         query = sample['query']
 
         targets = {'answer': sample['answer'], 'task': 'CocoClassification'}
@@ -215,7 +215,7 @@ class RefCocop(GenericCocoDataset):
         outputs[-1]['task'] = 'RefCocop'
         return outputs
 
-        
+
 @hydra.main(config_path="../configs",config_name="test/coco_datasets")
 def test_dataset(cfg):
     print(cfg.pretty())

@@ -89,7 +89,7 @@ class Backbone(BackboneBase):
         norm_layer = nn.BatchNorm2d
         if frozenbatchnorm:
             norm_layer = FrozenBatchNorm2d
-        
+
         backbone = getattr(torchvision.models, name)(
             replace_stride_with_dilation=[False, False, dilation],
             pretrained=is_main_process(), norm_layer=norm_layer) #nn.BatchNorm2d
